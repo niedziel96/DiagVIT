@@ -26,11 +26,11 @@ class AbstractDiagSetDataset(ABC):
         label_dictionary=None, # for preprepared label dict 
         shuffling=True, # default shuffling 
         class_ratios = None, # none for class ratio  
-        seed=7
-        input_data_table = None # default none 
-        input_data_csv = None
-        agg_splits = []
-        already_initialized = False
+        seed=7,
+        input_data_table = None, # default none 
+        input_data_csv = None,
+        agg_splits = [],
+        already_initialized = False,
         ):
     
         # Make sure the tissue tag is legit 
@@ -236,7 +236,7 @@ class AbstractDiagSetDataset(ABC):
         label = self.input_data_table['label'][idx]
         
         imgs = np.load(self.input_data_table['patch_path'][idx])
-        image = imgs[self.input_data_table['patch_id'][idx].astype(np.float32)
+        image = imgs[self.input_data_table['patch_id'][idx].astype(np.float32)]
         
         if self.augment:
             image = self._augment(image)
@@ -304,8 +304,8 @@ class SplitDataSet(AbstractDiagSetDataset):
         input_data_table, 
         input_data_csv = None,
         subtract_mean = True, 
-        self.seed = 7,
-        augment = True
+        seed = 7,
+        augment = True,
         already_initialized = True 
         ):
     

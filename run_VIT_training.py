@@ -3,13 +3,13 @@ import logging
 import os
 
 from diaglib import config
-from diaglib.data.diagset.data.vit.dataset import AbstractDiagSetDataset #, EvaluationDiagSetDataset # to change 
+from diaglib.data.vit.dataset import AbstractDiagSetDataset #, EvaluationDiagSetDataset # to change 
 #from diaglib.learn.cnn.classify.model_classes import MODEL_CLASSES # no idea 
 #from diaglib.learn.cnn.classify.trainers import Trainer # to replace 
 
 
 ### Base Packages
-from __future__ import print_function
+#from __future__ import print_function
 import argparse
 import pdb
 import os
@@ -21,8 +21,8 @@ import pandas as pd
 
 ### Internal Imports
 #from datasets.dataset_generic import Generic_WSI_Classification_Dataset, Generic_MIL_Dataset
-from utils.file_utils import save_pkl, load_pkl # to add 
-from utils.utils import *
+from diaglib.learn.utils.file_utils import save_pkl, load_pkl # to add 
+from diaglib.learn.utils.utils import *
 from diaglib.learn.trainer_vit import train
 
 ### PyTorch Imports
@@ -52,7 +52,7 @@ def main(args):
     all_test_auc, all_val_auc = [], []
     all_test_acc, all_val_acc= [], []
     
-    if default_partition:
+    if args.default_partition:
         folds = np.arange(0, 1)
     else: 
         folds = np.arange(start, end)
@@ -62,7 +62,7 @@ def main(args):
        
         seed_torch(args.seed) ### Sets the Torch.Seed
         
-        if default_partition:
+        if args.default_partition:
             train_dataset = train_dataset.get_split_from_df(i, split_key='default')
             test_dataset = test_dataset.get_split_from_df(i, split_key='default')
             val_dataset = val_dataset.get_split_from_df(i, split_key='default')
@@ -166,10 +166,10 @@ if args.default_partition:
             label_dictionary = args.subtract_mean, 
             shuffling = args.shuffling, 
             class_ratios = args.class_ratios,  
-            seed = args.seed
-            input_data_table = None 
-            input_data_csv = args.input_data_csv
-            agg_splits = []
+            seed = args.seed,
+            input_data_table = None,
+            input_data_csv = args.input_data_csv,
+            agg_splits = [],
             already_initialized = False
             )
             
@@ -183,10 +183,10 @@ if args.default_partition:
         label_dictionary = args.subtract_mean, 
         shuffling = args.shuffling, 
         class_ratios = args.class_ratios,  
-        seed = args.seed
-        input_data_table = None 
-        input_data_csv = args.input_data_csv
-        agg_splits = []
+        seed = args.seed,
+        input_data_table = None, 
+        input_data_csv = args.input_data_csv,
+        agg_splits = [],
         already_initialized = False
         )
         
@@ -200,10 +200,10 @@ if args.default_partition:
             label_dictionary = args.subtract_mean, 
             shuffling = args.shuffling, 
             class_ratios = args.class_ratios,  
-            seed = args.seed
-            input_data_table = None 
-            input_data_csv = args.input_data_csv
-            agg_splits = []
+            seed = args.seed,
+            input_data_table = None, 
+            input_data_csv = args.input_data_csv,
+            agg_splits = [],
             already_initialized = False
             )
         
@@ -218,10 +218,10 @@ else:
             label_dictionary = args.subtract_mean, 
             shuffling = args.shuffling, 
             class_ratios = args.class_ratios,  
-            seed = args.seed
-            input_data_table = None 
-            input_data_csv = args.input_data_csv
-            agg_splits = []
+            seed = args.seed,
+            input_data_table = None, 
+            input_data_csv = args.input_data_csv,
+            agg_splits = [],
             already_initialized = False
             )
 

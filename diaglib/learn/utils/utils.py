@@ -1,3 +1,4 @@
+import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader, Sampler, WeightedRandomSampler, RandomSampler, SequentialSampler, sampler
 
@@ -35,15 +36,15 @@ def get_split_loader(split_dataset, args, training = False, weighted = False):
 	return loader
 	
 def make_weights_for_balanced_classes_split(dataset):
-	N = float(len(dataset.lenght))    
+    N = float(len(dataset.lenght))    
     cl_ratios = dataset.get_class_ratios()
     weight_per_class = [value for key, value in cl_ratios.items()]    
-	#weight_per_class = [N/len(dataset.slide_cls_ids[c]) for c in range(len(dataset.slide_cls_ids))]                                                                                                     
-	weight = [0] * int(N)                                           
+    #weight_per_class = [N/len(dataset.slide_cls_ids[c]) for c in range(len(dataset.slide_cls_ids))]                                                                                                     
+    weight = [0] * int(N)                                           
 	
     
     for idx in range(N):   
-		y = dataset.input_data_table['label'][idx]                        
-		weight[idx] = weight_per_class[y]                                  
+        y = dataset.input_data_table['label'][idx]                        
+        weight[idx] = weight_per_class[y]                                  
 
-	return torch.DoubleTensor(weight)
+    return torch.DoubleTensor(weight)

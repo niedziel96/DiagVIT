@@ -1,11 +1,11 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-from utils.utils import *
+from diaglib.learn.utils.utils import *
 import os
 import torch.nn.functional as F
 #from datasets.dataset_generic import save_splits
-from models.models_vit import vision_transformer
+import diaglib.learn.models_vit.vision_transformer as vision_transformer
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.metrics import auc as calc_auc
@@ -131,32 +131,32 @@ def train(datasets, cur, args):
     
     # if dropout specified, update model dict settings - otherwise just let it be default (so 0.0) 
     if args.drop_out is not None:
-        model_dict.update("dropout":args.drop_out)
+        model_dict.update({'dropout' : args.drop_out})
     
     # same for attention dropout 
     if args.att_dropout is not None: 
-        model_dict.update("attention_dropout":args.att_dropout)
+        model_dict.update({'attention_dropout':args.att_dropout})
     
     if args.model_type == 'vit_base_b_16':
         if args.pretrain:
-            model = vision_transformer.vit_b_16(**model_dict, pretrained=True)
+            model = vision_transformer.base_vit_b_16(**model_dict, pretrained=True)
         else: 
-            model = vision_transformer.vit_b_16(**model_dict)
+            model = vision_transformer.base_vit_b_16(**model_dict)
     elif args.model_type == 'vit_base_b_32':
         if args.pretrain:
-            model = vision_transformer.vit_b_32(**model_dict, pretrained=True)
+            model = vision_transformer.base_vit_b_32(**model_dict, pretrained=True)
         else: 
-            model = vision_transformer.vit_b_32(**model_dict)
+            model = vision_transformer.base_vit_b_32(**model_dict)
     elif args.model_type == 'vit_base_l_16':
         if args.pretrain:
-            model = vision_transformer.vit_l_16(**model_dict, pretrained=True)
+            model = vision_transformer.base_vit_l_16(**model_dict, pretrained=True)
         else: 
-            model = vision_transformer.vit_l_16(**model_dict)
+            model = vision_transformer.base_vit_l_16(**model_dict)
     elif args.model_type == 'vit_base_l_32':
         if args.pretrain:
-            model = vision_transformer.vit_l_32(**model_dict, pretrained=True)
+            model = vision_transformer.base_vit_l_32(**model_dict, pretrained=True)
         else: 
-            model = vision_transformer.vit_l_32(**model_dict)
+            model = vision_transformer.base_vit_l_32(**model_dict)
  
  
     if torch.cuda.is_available() and args.gpu:
