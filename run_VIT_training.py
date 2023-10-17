@@ -163,7 +163,7 @@ if args.default_partition:
             image_size = args.image_size,
             augment = args.augument, 
             subtract_mean = args.subtract_mean, 
-            label_dictionary = args.subtract_mean, 
+            label_dictionary = args.label_dictionary, 
             shuffling = args.shuffling, 
             class_ratios = args.class_ratios,  
             seed = args.seed,

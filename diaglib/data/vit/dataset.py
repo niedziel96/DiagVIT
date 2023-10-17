@@ -2,7 +2,9 @@ import json
 import logging
 import numpy as np
 import pandas as pd
-
+from pathlib import Path
+import torch 
+ 
 from abc import ABC, abstractmethod
 from diaglib import config
 #from diaglib.data.diagset.loading import ndp, db, local
@@ -56,7 +58,8 @@ class AbstractDiagSetDataset(ABC):
         self.agg_splits = agg_splits
         self.already_initialized = already_initialized
             
-            
+        
+
         # Perform initial setup and data preparation only of ot was not initialized before (genereic dataset) 
         if not self.already_initialized:
             
@@ -67,8 +70,10 @@ class AbstractDiagSetDataset(ABC):
             
             if self.label_dictionary is None:
                 logging.getLogger('diaglib').info('Using default label dictionary...')
+                print('self label empty -- getting it from config')
                 self.label_dictionary = config.LABEL_DICTIONARIES[tissue_tag]
             else:
+                print(type(label_dictionary))
                 self.label_dictionary = label_dictionary
             
             # get numeric labels based on dict values 
@@ -127,7 +132,7 @@ class AbstractDiagSetDataset(ABC):
         if self.input_data_table is None: 
             # create table to select from based on blob paths 
             self.input_data_table = self.conv_to_table(self.blob_paths) # creates a table |patch_path|label|
-            
+            print(self.input_data_table)
             # add sub-index to each file 
             self.input_data_table = self.add_sub_index(self.input_data_table)
 
@@ -147,7 +152,7 @@ class AbstractDiagSetDataset(ABC):
     def conv_to_table(self, blob_dict):
         df = pd.DataFrame()
         for key, value in blob_dict.items():
-            df = pd.concat([df, pd.DataFrame({'patch_path' :blob_paths[key], 'label': [int(key) for x in range(len(blob_paths[key]))]})], axis=0)
+            df = pd.concat([df, pd.DataFrame({'patch_path' : self.blob_paths[key], 'label': [int(key) for x in range(len(self.blob_paths[key]))]})], axis=0)
     
         df.reset_index(inplace = True)
         return df 
@@ -184,9 +189,9 @@ class AbstractDiagSetDataset(ABC):
         self.agg_splits = []
         if self.split_type == 'shuffle':
             split = StratifiedShuffleSplit(n_splits=n_splits, test_size=t_and_v_size, random_state=self.seed)
-            for train_index, test_valid_index in split.split(self.input_data_table , input_data_table.label):
+            for train_index, test_valid_index in split.split(self.input_data_table , self.input_data_table.label):
                 train_set = self.input_data_table.iloc[train_index]
-                result_split.append(train_set)
+                train_split.append(train_set)
                 test_valid_set =  self.input_data_table.iloc[test_valid_index]
                 tv_split.append(test_valid_set)
                 
@@ -217,16 +222,17 @@ class AbstractDiagSetDataset(ABC):
             print('not implemented yet....')
     
     def add_sub_index(self, dt_table):
-    
+        
         n_dt_table = pd.DataFrame()
         # for each single image get len and assign idx 
-        for idx in len(dt_table['patch_path']):
+        for idx in range(len(dt_table['patch_path'])):
+            print(f'processing {idx} out of {len(dt_table["patch_path"])}')
             if idx != len(dt_table['patch_path']):
-                tmp_img = np.load(load_data.patch_path[idx])
+                tmp_img = np.load(dt_table.patch_path[idx])
                 n_sub_idx = [x for x in range(len(tmp_img))]
                 tmp_tbl = pd.DataFrame(np.repeat(dt_table.iloc[idx:idx+1].values, len(tmp_img), axis=0))
                 tmp_tbl['subindex'] = n_sub_idx
-                tmp_tbl['artificial_id'] = tmp_tbl['patch_path'] + '_' + ddf['subindex'].astype(str) # that one is unique for any patch - it's composed of file path (scan) and subindex. 
+                tmp_tbl['artificial_id'] = dt_table['patch_path'][idx] + '_' + tmp_tbl['subindex'].astype(str) # that one is unique for any patch - it's composed of file path (scan) and subindex. 
                 pd.concat([n_dt_table, tmp_tbl], axis=0)
         
         n_dt_table.to_csv('inputs_data_table.csv')
