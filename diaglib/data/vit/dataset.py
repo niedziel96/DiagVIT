@@ -127,7 +127,11 @@ class AbstractDiagSetDataset(ABC):
 
                     for blob_name in blob_names:
                         self.blob_paths[numeric_label].append(f'{self.root_blobs_path}/{scan_name}/{string_label}/{blob_name}')
-                
+        
+        if self.already_initialized:
+            print(' ----- reading already prepared input data table -----')
+            self.input_data_table = pd.read_csv(f'inputs_data_table_{self.partitions[0]}.csv')
+                    
                 
         if self.input_data_table is None: 
             # create table to select from based on blob paths 
@@ -141,12 +145,17 @@ class AbstractDiagSetDataset(ABC):
                 # for numeric_label in self.numeric_labels:
                     # np.random.shuffle(self.blob_paths[numeric_label])
                     self.input_data_table = self.input_data_table.sample(frac = 1, random_state = self.seed)
-        
-        
+
+    def get_num_classes(self):
+        labels_num = len(self.input_data_table.groupby(by=['label']).size())
+        return labels_num
+    
     def get_class_ratios(self):
         lenght = len(self.input_data_table)
         labels_size = self.input_data_table.groupby(by=['label']).size()
-        class_ratios = {k: v/lenght for k,v in enumerate(labels_size)}
+        labels_keys = labels_size.keys()
+
+        class_ratios = {int(labels_keys[k]): v/lenght for k,v in enumerate(labels_size)}
         return class_ratios
         
     def conv_to_table(self, blob_dict):
@@ -226,23 +235,28 @@ class AbstractDiagSetDataset(ABC):
         n_dt_table = pd.DataFrame()
         # for each single image get len and assign idx 
         for idx in range(len(dt_table['patch_path'])):
-            print(f'processing {idx} out of {len(dt_table["patch_path"])}')
             if idx != len(dt_table['patch_path']):
                 tmp_img = np.load(dt_table.patch_path[idx])
                 n_sub_idx = [x for x in range(len(tmp_img))]
                 tmp_tbl = pd.DataFrame(np.repeat(dt_table.iloc[idx:idx+1].values, len(tmp_img), axis=0))
+                tmp_tbl.rename(columns = {'1':'patch_path', '2':'label'}, inplace = True)
                 tmp_tbl['subindex'] = n_sub_idx
                 tmp_tbl['artificial_id'] = dt_table['patch_path'][idx] + '_' + tmp_tbl['subindex'].astype(str) # that one is unique for any patch - it's composed of file path (scan) and subindex. 
-                pd.concat([n_dt_table, tmp_tbl], axis=0)
+                print(f'processing {idx} out of {len(dt_table["patch_path"])}')
+                n_dt_table = pd.concat([n_dt_table, tmp_tbl], axis=0)
         
-        n_dt_table.to_csv('inputs_data_table.csv')
+        print(n_dt_table)
+        f = open(f'inputs_data_table_{self.partitions[0]}.csv', 'wb')
+        n_dt_table.to_csv(f, encoding='utf-8', index=False)
+        f.close()
+        
         return n_dt_table
     
     def __getitem__(self, idx):
         label = self.input_data_table['label'][idx]
         
         imgs = np.load(self.input_data_table['patch_path'][idx])
-        image = imgs[self.input_data_table['patch_id'][idx].astype(np.float32)]
+        image = imgs[self.input_data_table['subindex'][idx]].astype(np.float32)
         
         if self.augment:
             image = self._augment(image)
@@ -298,9 +312,9 @@ class AbstractDiagSetDataset(ABC):
         image = image[x:(x + self.patch_size[0]), y:(y + self.patch_size[1])]
 
         if np.random.choice([True, False]):
-            image = np.fliplr(image)
+            image = np.fliplr(image).copy() # walkaround for negative tensor problems 
 
-        image = np.rot90(image, k=np.random.randint(4))
+        image = np.rot90(image, k=np.random.randint(4)).copy() # walkaround for negative tensor problems
 
         return image
 
@@ -312,7 +326,8 @@ class SplitDataSet(AbstractDiagSetDataset):
         subtract_mean = True, 
         seed = 7,
         augment = True,
-        already_initialized = True 
+        already_initialized = True,
+        patch_size = (224, 224)
         ):
     
         # Make sure the tissue tag is legit 
@@ -323,7 +338,8 @@ class SplitDataSet(AbstractDiagSetDataset):
         self.seed = seed 
         self.input_data_table = input_data_table
         self.input_data_csv = input_data_csv
-        self.already_initialized = already_initialized 
+        self.already_initialized = already_initialized
+        self.patch_size = patch_size
         
     def __len__(self):
         return len(self.input_data_table)

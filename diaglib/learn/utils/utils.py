@@ -21,7 +21,7 @@ def get_split_loader(split_dataset, args, training = False, weighted = False):
 		return either the validation loader or training loader 
 	"""
 
-	kwargs = {'num_workers': 8} if device.type == "cuda" else {}
+	kwargs = {'num_workers': 8} if torch.device.type == "cuda" else {}
 
 	if training:
 		if weighted:
@@ -36,15 +36,37 @@ def get_split_loader(split_dataset, args, training = False, weighted = False):
 	return loader
 	
 def make_weights_for_balanced_classes_split(dataset):
-    N = float(len(dataset.lenght))    
+    N = int(float(len(dataset)))  
+    print(f'----- there is in total {N} datapoints -----')  
     cl_ratios = dataset.get_class_ratios()
+    print(f'----- calculated ratios: {cl_ratios} -----')
     weight_per_class = [value for key, value in cl_ratios.items()]    
     #weight_per_class = [N/len(dataset.slide_cls_ids[c]) for c in range(len(dataset.slide_cls_ids))]                                                                                                     
     weight = [0] * int(N)                                           
 	
     
     for idx in range(N):   
-        y = dataset.input_data_table['label'][idx]                        
-        weight[idx] = weight_per_class[y]                                  
+        y = dataset.input_data_table['label'][idx]    
+        weight[idx] = weight_per_class[int(y)-1]     
+                            
 
     return torch.DoubleTensor(weight)
+
+def print_network(net):
+	num_params = 0
+	num_params_train = 0
+	print(net)
+	
+	for param in net.parameters():
+		n = param.numel()
+		num_params += n
+		if param.requires_grad:
+			num_params_train += n
+	
+	print('Total number of parameters: %d' % num_params)
+	print('Total number of trainable parameters: %d' % num_params_train)
+ 
+def calculate_error(Y_hat, Y):
+	error = 1. - Y_hat.float().eq(Y.float()).float().mean().item()
+
+	return error

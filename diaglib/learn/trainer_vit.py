@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
 from diaglib.learn.utils.utils import *
 import os
 import torch.nn.functional as F
@@ -9,6 +10,7 @@ import diaglib.learn.models_vit.vision_transformer as vision_transformer
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.metrics import auc as calc_auc
+
 
 import sys
 #from utils.gpu_utils import gpu_profile, print_gpu_mem
@@ -127,6 +129,9 @@ def train(datasets, cur, args):
     print('Done!')
     
     print('\nInit Model...', end=' ')
+    if args.n_classes is None: 
+        args.n_classes = train_split.get_num_classes()
+        print(f'----- assigning number of classes by calculating: {args.n_classes} -----')
     model_dict = {'image_size': args.image_size, 'num_classes': args.n_classes}
     
     # if dropout specified, update model dict settings - otherwise just let it be default (so 0.0) 
@@ -138,28 +143,28 @@ def train(datasets, cur, args):
         model_dict.update({'attention_dropout':args.att_dropout})
     
     if args.model_type == 'vit_base_b_16':
-        if args.pretrain:
+        if args.pretrained:
             model = vision_transformer.base_vit_b_16(**model_dict, pretrained=True)
         else: 
             model = vision_transformer.base_vit_b_16(**model_dict)
     elif args.model_type == 'vit_base_b_32':
-        if args.pretrain:
+        if args.pretrained:
             model = vision_transformer.base_vit_b_32(**model_dict, pretrained=True)
         else: 
             model = vision_transformer.base_vit_b_32(**model_dict)
     elif args.model_type == 'vit_base_l_16':
-        if args.pretrain:
+        if args.pretrained:
             model = vision_transformer.base_vit_l_16(**model_dict, pretrained=True)
         else: 
             model = vision_transformer.base_vit_l_16(**model_dict)
     elif args.model_type == 'vit_base_l_32':
-        if args.pretrain:
+        if args.pretrained:
             model = vision_transformer.base_vit_l_32(**model_dict, pretrained=True)
         else: 
             model = vision_transformer.base_vit_l_32(**model_dict)
  
  
-    if torch.cuda.is_available() and args.gpu:
+    if torch.cuda.is_available():
         model = model.to(torch.device('cuda'))
         print('\nGPU available, using CUDA..')
     else: 
@@ -173,8 +178,8 @@ def train(datasets, cur, args):
     
     print('\nInit Loaders...', end=' ')
     train_loader = get_split_loader(train_split, args, training=True, weighted = args.weighted_sample)
-    val_loader = get_split_loader(val_split)
-    test_loader = get_split_loader(test_split)
+    val_loader = get_split_loader(val_split, args)
+    test_loader = get_split_loader(test_split, args)
     print('Done!')
 
     print('\nSetup EarlyStopping...', end=' ')
@@ -232,15 +237,11 @@ def train_loop(epoch, model, loader, optimizer, n_classes, writer = None, loss_f
     print('\n')
     for batch_idx, batch in enumerate(loader):
 
-        if hasattr(model, "num_clusters"):
-            data, cluster_id, label = batch
-            data, cluster_id, label = data.to(device, non_blocking=True), cluster_id, label.to(device, non_blocking=True)
-        else:
-            data, label = batch
-            data, label = data.to(device, non_blocking=True), label.to(device, non_blocking=True)
-            cluster_id = None
+        data, label = batch
+        data, label = data.to(device, non_blocking=True), label.to(device, non_blocking=True)
+        cluster_id = None
 
-        logits, Y_prob, Y_hat, _, _ = model(data, cluster_id=cluster_id)
+        logits, Y_prob, Y_hat, _, _ = model(data)
         #logits, Y_prob, Y_hat, _, _ = model(x_path=data)
         acc_logger.log(Y_hat, label)
         loss = loss_fn(logits, label)
@@ -289,14 +290,10 @@ def validate(cur, epoch, model, loader, n_classes, early_stopping = None, writer
 
     with torch.no_grad():
         for batch_idx, batch in enumerate(loader):
-            if hasattr(model, "num_clusters"):
-                data, cluster_id, label = batch
-                data, cluster_id, label = data.to(device, non_blocking=True), cluster_id, label.to(device, non_blocking=True)
-            else:
-                data, label = batch
-                data, label = data.to(device, non_blocking=True), label.to(device, non_blocking=True)
-                cluster_id = None
-            logits, Y_prob, Y_hat, _, _ = model(data, cluster_id=cluster_id)
+
+            data, label = batch
+            data, label = data.to(device, non_blocking=True), label.to(device, non_blocking=True)
+            logits, Y_prob, Y_hat, _, _ = model(data)
             #logits, Y_prob, Y_hat, _, _ = model(x_path=data)
             acc_logger.log(Y_hat, label)
             

@@ -33,7 +33,7 @@ import torch.nn.functional as F
 
 
 ##### Train-Val-Test Loop for 10-Fold CV
-def main(args):
+def main(args, dataset):
     ### Creates Results Directory (if not previously created)
     if not os.path.isdir(args.results_dir):
         os.mkdir(args.results_dir)
@@ -63,10 +63,11 @@ def main(args):
         seed_torch(args.seed) ### Sets the Torch.Seed
         
         if args.default_partition:
-            train_dataset = train_dataset.get_split_from_df(i, split_key='default')
-            test_dataset = test_dataset.get_split_from_df(i, split_key='default')
-            val_dataset = val_dataset.get_split_from_df(i, split_key='default')
-            datasets = (train_dataset, test_dataset, val_dataset)
+            train_dataset, test_dataset, val_dataset = dataset
+            tr_dataset = train_dataset.get_split_from_df(i, split_key='default')
+            t_dataset = test_dataset.get_split_from_df(i, split_key='default')
+            v_dataset = val_dataset.get_split_from_df(i, split_key='default')
+            datasets = (tr_dataset, t_dataset, v_dataset)
         else: 
             train_dataset = dataset.get_split_from_df(i, split_key='train')
             test_dataset = dataset.get_split_from_df(i, split_key='test')
@@ -109,6 +110,8 @@ parser.add_argument('-shuffling', type=bool, default=True)
 parser.add_argument('-class_ratios', default=None) 
 parser.add_argument('-seed', type=int, default=7) 
 parser.add_argument('-input_data_csv', type=str, default=None) # path to csv file with already prepared files table 
+parser.add_argument('-drop_out',       type=float, default=None, help='set dropout rate')
+parser.add_argument('-att_dropout',       type=float, default=None, help='set attention dropout rate')
 
 # optimizer and loader related 
 parser.add_argument('-batch_size', type=int, default=32) # TBC 
@@ -122,6 +125,8 @@ parser.add_argument('-max_epochs', type=int, default=50) # used in trainer_vit
 parser.add_argument('-learning_rate', type=float, default=0.0001) # used in utils.utils
 parser.add_argument('-momentum', type=float, default=0.9) # used in utils.utils 
 parser.add_argument('-weighted_sample', type=bool, default=True) # used in trainer_vit - to make weighted sampling in case of unbalanced datasets 
+parser.add_argument('-already_initialized', type=bool, default=False) # for dataset
+parser.add_argument('-n_classes', type=int, default=None) # used in trainer_vit 
 
 #  used in train 
 parser.add_argument('--log_data', action='store_true', default=True, help='log data using tensorboard') # used in trainer 
@@ -170,7 +175,7 @@ if args.default_partition:
             input_data_table = None,
             input_data_csv = args.input_data_csv,
             agg_splits = [],
-            already_initialized = False
+            already_initialized = args.already_initialized
             )
             
     test_dataset = AbstractDiagSetDataset( 
@@ -180,32 +185,34 @@ if args.default_partition:
         image_size = args.image_size,
         augment = False, 
         subtract_mean = args.subtract_mean, 
-        label_dictionary = args.subtract_mean, 
+        label_dictionary = args.label_dictionary, 
         shuffling = args.shuffling, 
         class_ratios = args.class_ratios,  
         seed = args.seed,
         input_data_table = None, 
         input_data_csv = args.input_data_csv,
         agg_splits = [],
-        already_initialized = False
+        already_initialized = args.already_initialized
         )
         
     val_dataset = AbstractDiagSetDataset( 
             tissue_tag = args.tissue_tag, 
-            partitions = ['val'],
+            partitions = ['validation'],
             patch_size = args.patch_size,
             image_size = args.image_size,
             augment = False, 
             subtract_mean = args.subtract_mean, 
-            label_dictionary = args.subtract_mean, 
+            label_dictionary = args.label_dictionary, 
             shuffling = args.shuffling, 
             class_ratios = args.class_ratios,  
             seed = args.seed,
             input_data_table = None, 
             input_data_csv = args.input_data_csv,
             agg_splits = [],
-            already_initialized = False
+            already_initialized = args.already_initialized
             )
+    
+    dataset = (train_dataset, test_dataset, val_dataset)
         
 else: 
     dataset = AbstractDiagSetDataset( 
@@ -227,6 +234,6 @@ else:
 
 
 if __name__ == "__main__":
-    results = main(args)
+    results = main(args, dataset)
     print("finished!")
     print("end script")
