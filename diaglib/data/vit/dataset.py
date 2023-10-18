@@ -257,9 +257,10 @@ class AbstractDiagSetDataset(ABC):
         
         imgs = np.load(self.input_data_table['patch_path'][idx])
         image = imgs[self.input_data_table['subindex'][idx]].astype(np.float32)
-        
+        print(image.shape)
         if self.augment:
             image = self._augment(image)
+            print(image.shape)
         else:
             x = (image.shape[0] - self.patch_size[0]) // 2
             y = (image.shape[1] - self.patch_size[1]) // 2
@@ -271,6 +272,10 @@ class AbstractDiagSetDataset(ABC):
         
         feature = torch.from_numpy(image)
         
+        feature = feature.unsqueeze(0)
+        feature = feature.permute(0, 3, 1, 2)
+        
+        print(f'-- {feature.shape} --')
         return feature, label 
            
 

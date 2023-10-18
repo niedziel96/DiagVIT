@@ -132,7 +132,7 @@ def train(datasets, cur, args):
     if args.n_classes is None: 
         args.n_classes = train_split.get_num_classes()
         print(f'----- assigning number of classes by calculating: {args.n_classes} -----')
-    model_dict = {'image_size': args.image_size, 'num_classes': args.n_classes}
+    model_dict = {'image_size': args.patch_size, 'num_classes': args.n_classes}
     
     # if dropout specified, update model dict settings - otherwise just let it be default (so 0.0) 
     if args.drop_out is not None:
@@ -238,10 +238,11 @@ def train_loop(epoch, model, loader, optimizer, n_classes, writer = None, loss_f
     for batch_idx, batch in enumerate(loader):
 
         data, label = batch
+        print(data.size())
         data, label = data.to(device, non_blocking=True), label.to(device, non_blocking=True)
         cluster_id = None
 
-        logits, Y_prob, Y_hat, _, _ = model(data)
+        logits, Y_prob, Y_hat, _, _ = model(data) # ADD BATCH SIZE!!!!!! <------------------------------ !!! 
         #logits, Y_prob, Y_hat, _, _ = model(x_path=data)
         acc_logger.log(Y_hat, label)
         loss = loss_fn(logits, label)
