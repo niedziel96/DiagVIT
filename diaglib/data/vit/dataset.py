@@ -276,6 +276,7 @@ class AbstractDiagSetDataset(ABC):
         feature = feature.permute(0, 3, 1, 2)
         
         print(f'-- {feature.shape} --')
+        print(f'-- {label} --')
         return feature, label 
            
 

@@ -4,13 +4,14 @@ import torch.nn.functional as F
 import torch.nn as nn
 from diaglib.learn.utils.utils import *
 import os
+import time
 import torch.nn.functional as F
 #from datasets.dataset_generic import save_splits
 import diaglib.learn.models_vit.vision_transformer as vision_transformer
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.metrics import auc as calc_auc
-
+from timm.utils import accuracy, AverageMeter
 
 import sys
 #from utils.gpu_utils import gpu_profile, print_gpu_mem
@@ -166,6 +167,7 @@ def train(datasets, cur, args):
  
     if torch.cuda.is_available():
         model = model.to(torch.device('cuda'))
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=args.gpu_list, broadcast_buffers=False)
         print('\nGPU available, using CUDA..')
     else: 
         print('\nGPU unavailable, using CPU..')
@@ -192,7 +194,7 @@ def train(datasets, cur, args):
 
     for epoch in range(args.max_epochs):
 
-        train_loop(epoch, model, train_loader, optimizer, args.n_classes, writer, loss_fn)
+        train_loop(epoch, model, train_loader, optimizer, args.n_classes, writer, loss_fn, args.en_autocast, args.acc_steps)
         stop = validate(cur, epoch, model, val_loader, args.n_classes, 
             early_stopping, writer, loss_fn, args.results_dir)
         
@@ -227,10 +229,22 @@ def train(datasets, cur, args):
     return results_dict, test_auc, val_auc, 1-test_error, 1-val_error 
 
 
-def train_loop(epoch, model, loader, optimizer, n_classes, writer = None, loss_fn = None, gc=32):   
+def train_loop(epoch, model, loader, optimizer, n_classes, writer = None, loss_fn = None, en_autocast = True, acc_steps = 1):   
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu") 
+    
+    # set model to train mode 
     model.train()
-    acc_logger = Accuracy_Logger(n_classes=n_classes)
+    optimizer.zero_grad()
+    
+    batch_time = AverageMeter()
+    loss_meter = AverageMeter()
+    norm_meter = AverageMeter()
+    scaler_meter = AverageMeter()
+    
+    start = time.time()
+    end = time.time()
+    
+    acc_logger = Accuracy_Logger(n_classes=n_classes) # do i even need this? 
     train_loss = 0.
     train_error = 0.
 
@@ -238,22 +252,32 @@ def train_loop(epoch, model, loader, optimizer, n_classes, writer = None, loss_f
     for batch_idx, batch in enumerate(loader):
 
         data, label = batch
-        print(data.size())
+        #print(data)
+        #print(data.size())
         data, label = data.to(device, non_blocking=True), label.to(device, non_blocking=True)
         cluster_id = None
-
-        logits, Y_prob, Y_hat, _, _ = model(data) # ADD BATCH SIZE!!!!!! <------------------------------ !!! 
-        #logits, Y_prob, Y_hat, _, _ = model(x_path=data)
-        acc_logger.log(Y_hat, label)
-        loss = loss_fn(logits, label)
+        print(f'-- there are {len(model(data))} outputs from model --')
+        with torch.cuda.amp.autocast(enabled=en_autocast):
+            output = model(data) # ADD BATCH SIZE!!!!!! <------------------------------ !!! 
+      
+        o_one = output[0]
+        print(o_one[3])
+        loss = loss_fn(output, label)
+        print(loss)
+        
+        # for gradients accumulation - divide the gradients by the steps
+        loss = loss / acc_steps
+        
         loss_value = loss.item()
         
         train_loss += loss_value
         if (batch_idx + 1) % 20 == 0:
             print('batch {}, loss: {:.4f}, label: {}, bag_size: {}'.format(batch_idx, loss_value, label.item(), data.size(0)))
            
-        error = calculate_error(Y_hat, label)
-        train_error += error
+        
+        
+        #error = calculate_error(Y_hat, label)
+        #train_error += error
         
         loss = loss / gc
         loss.backward()

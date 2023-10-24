@@ -115,18 +115,22 @@ parser.add_argument('-att_dropout',       type=float, default=None, help='set at
 
 # optimizer and loader related 
 parser.add_argument('-batch_size', type=int, default=32) # TBC 
-parser.add_argument('-weight_decay', type=float, default=0.0005) # used in utils.utils
+parser.add_argument('-weight_decay', type=float, default=1e-5) # used in utils.utils
 parser.add_argument('-optimizer', type=str, default='sgd', choices=['adam', 'sgd']) # used in utils.utils
 
 # model and train related 
 parser.add_argument('-pretrained', type=bool, default=False) # used in trainer_vit
 parser.add_argument('-early_stopping', type=bool, default=False) # used in trainer_vit 
 parser.add_argument('-max_epochs', type=int, default=50) # used in trainer_vit 
-parser.add_argument('-learning_rate', type=float, default=0.0001) # used in utils.utils
+parser.add_argument('-learning_rate', type=float, default=2e-4) # used in utils.utils
 parser.add_argument('-momentum', type=float, default=0.9) # used in utils.utils 
 parser.add_argument('-weighted_sample', type=bool, default=True) # used in trainer_vit - to make weighted sampling in case of unbalanced datasets 
 parser.add_argument('-already_initialized', type=bool, default=False) # for dataset
 parser.add_argument('-n_classes', type=int, default=None) # used in trainer_vit 
+parser.add_argument('-acc_steps', type=int, default=1) # used in trainer_vit - accumulation steps for gradient
+parser.add_argument('-en_autocast', type=bool, default=True) # used in trainer_vit - to enable autocasting for training
+parser.add_argument('-gpu_list', type=list, default=[0]) # used in trainer_vit - list of GPU to use for training
+
 
 #  used in train 
 parser.add_argument('--log_data', action='store_true', default=True, help='log data using tensorboard') # used in trainer 

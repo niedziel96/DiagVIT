@@ -4,9 +4,13 @@ from torch.utils.data import DataLoader, Sampler, WeightedRandomSampler, RandomS
 
 def get_optim(model, args):
 	if args.optimizer == "adam":
+     
 		optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate, weight_decay=args.weight_decay)
+		print(f'-- using Adam Optimizer with lr: {args.learning_rate}, wd: {args.weight_decay}')
 	elif args.optimizer == 'sgd':
 		optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
+		print(f'-- using sgd Optimizer with lr: {args.learning_rate}, wd: {args.weight_decay}')
+		print(model.parameters())
 	else:
 		raise NotImplementedError
 	return optimizer
