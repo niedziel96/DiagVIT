@@ -1,6 +1,7 @@
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader, Sampler, WeightedRandomSampler, RandomSampler, SequentialSampler, sampler
+import torch.distributed as dist
 
 def get_optim(model, args):
 	if args.optimizer == "adam":
@@ -74,3 +75,9 @@ def calculate_error(Y_hat, Y):
 	error = 1. - Y_hat.float().eq(Y.float()).float().mean().item()
 
 	return error
+
+def reduce_tensor(tensor):
+    rt = tensor.clone()
+    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
+    rt /= dist.get_world_size()
+    return rt
