@@ -485,7 +485,7 @@ def validate(cur, epoch, model, loader, n_classes, early_stopping = None, writer
             if batch_idx % 10 == 0:
                 memory_used = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
                 logger.info(
-                    f'Test: [{idx}/{len(data_loader)}]\t'
+                    f'Test: [{batch_idx}/{len(loader)}]\t'
                     f'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     f'Loss {loss_meter.val:.4f} ({loss_meter.avg:.4f})\t'
                     f'Acc@1 {acc1_meter.val:.3f} ({acc1_meter.avg:.3f})\t'
